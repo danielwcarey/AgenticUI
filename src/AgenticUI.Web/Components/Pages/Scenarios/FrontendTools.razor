@@ -25,9 +25,7 @@
         <div class="scenario__chat">
             <ChatPage Agent="_agent" Placeholder="Ask me to change the accent color…">
                 <MessageListContent>
-                    <BlockRenderer TBlock="AccentColorToolBlock"
-                                   When='block => block.ToolName == "set_accent_color"'
-                                   Context="block">
+                    <BlockRenderer TBlock="AccentColorToolBlock" Context="block">
                         <div class="ui-action-chip">
                             @if (block.HasResult)
                             {
