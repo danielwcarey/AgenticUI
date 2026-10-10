@@ -1,6 +1,6 @@
 # Building agentic UI with .NET
 
-This sample demonstrates how to build rich agentic user experiences with .NET. A **Blazor** chat experience provides a flexible conversational foundation, and the scenarios extend it with structured rich text, tool-driven UI, human approval, shared and predictive state, generative UI, and visible reasoning. The backend hosts agents built with the **Microsoft Agent Framework (MAF)**, while the **[AG-UI](https://docs.ag-ui.com) C# SDK** carries messages, actions, and state between the agents and the preview [Blazor AI components](https://learn.microsoft.com/aspnet/core/release-notes/aspnetcore-11#experimental-blazor-ai-components-for-agentic-user-interfaces). [Aspire](https://learn.microsoft.com/dotnet/aspire/) wires the application together, and the agents use **[Microsoft Foundry](https://learn.microsoft.com/azure/ai-foundry/)** for model inference.
+This sample demonstrates how to build rich agentic user experiences with .NET. A **Blazor** chat experience provides a flexible conversational foundation, and the scenarios extend it with structured rich text, tool-driven UI, human approval, shared and predictive state, generative UI, and visible reasoning. The backend hosts agents built with the **Microsoft Agent Framework (MAF)**, while the **[AG-UI](https://docs.ag-ui.com) C# SDK** carries messages, actions, and state between the agents and the preview [Blazor AI components](https://learn.microsoft.com/aspnet/core/release-notes/aspnetcore-11#experimental-blazor-ai-components-for-agentic-user-interfaces). [Aspire](https://learn.microsoft.com/dotnet/aspire/) wires the application together, and the agents use **[Foundry Local](https://learn.microsoft.com/azure/ai-foundry/foundry-local/)** by default, with optional **[Microsoft Foundry on Azure](https://learn.microsoft.com/azure/ai-foundry/)** inference.
 
 ![AgenticUI demonstrating frontend tools, human approval, and generative UI](docs/images/agentic-ui.gif)
 
@@ -21,7 +21,7 @@ This sample demonstrates how to build rich agentic user experiences with .NET. A
 
 ![Architecture of the AgenticUI sample from Blazor through AG-UI and ASP.NET Core to Microsoft Foundry](docs/images/blazor-agentic-ui-architecture.svg)
 
-- **`AgenticUI.AgentServer`** — ASP.NET Core app. Uses `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` (`AddAGUIServer()` + `MapAGUIServer("/route", agent)`) to expose one AG-UI endpoint per scenario. Agents are MAF `AIAgent`s backed by Microsoft Foundry via `Microsoft.Agents.AI.OpenAI`.
+- **`AgenticUI.AgentServer`** — ASP.NET Core app. Uses `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` (`AddAGUIServer()` + `MapAGUIServer("/route", agent)`) to expose one AG-UI endpoint per scenario. Agents are MAF `AIAgent`s backed by Foundry Local or Azure via `Microsoft.Agents.AI.OpenAI`.
 - **`AgenticUI.Web`** — Blazor Web App (Interactive Server). Each scenario builds a `UIAgent` over an `AGUIChatClient` (from the AG-UI C# SDK's `AGUI.Client`), which turns an AG-UI endpoint into a standard `IChatClient`. UI is rendered with the Blazor AI components (`ChatPage`, `MessageList`, `BlockRenderer`, `UIAgent<TState>`, …).
 - **`AgenticUI.AppHost` / `AgenticUI.ServiceDefaults`** — Aspire orchestration and service discovery.
 
@@ -40,9 +40,8 @@ This sample demonstrates how to build rich agentic user experiences with .NET. A
 
 - [.NET 11 RC1 SDK](https://dotnet.microsoft.com/download/dotnet/11.0)
 - [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/)
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- A **[Microsoft Foundry](https://learn.microsoft.com/azure/ai-foundry/) resource** with a
-  `gpt-5-mini` deployment (used for both the general chat and reasoning scenarios).
+- [Foundry Local CLI](https://learn.microsoft.com/azure/ai-foundry/foundry-local/get-started), available as `foundry` on `PATH`.
+- For optional Azure inference: Azure CLI and a Microsoft Foundry resource with a `gpt-5-mini` deployment.
 
 ### Clone and build
 
@@ -53,7 +52,32 @@ dotnet restore
 dotnet build
 ```
 
-### Configure Microsoft Foundry
+### Use Foundry Local (default)
+
+Run `aspire run`. Aspire starts Foundry Local, resolves the hardware-specific model ID, loads
+the `phi-4-mini` model (downloading it if needed), and waits for it before starting the agent server.
+Azure sign-in and an Azure endpoint are unnecessary in local mode. The model runs on your machine;
+the initial model download requires internet access and disk space.
+
+Choose another tool-capable model from `foundry model list` by setting:
+
+```bash
+dotnet user-secrets set "Foundry:LocalModel" "<model-alias>" --project src/AgenticUI.AppHost
+```
+
+Local mode uses the OpenAI-compatible chat completions API for all scenarios, including reasoning.
+The reasoning demo returns an answer, but Azure Responses API reasoning summaries are unavailable
+with the default local model. Tool and structured-output quality varies by model.
+
+### Configure Microsoft Foundry on Azure (optional)
+
+Select Azure inference explicitly; the existing endpoint and deployment secrets remain supported:
+
+```bash
+dotnet user-secrets set "Foundry:Provider" "Azure" --project src/AgenticUI.AppHost
+```
+
+Set `Foundry:Provider` to `Local` to return to local inference.
 
 Sign in to Azure with the identity that has access to the Foundry resource:
 
@@ -96,9 +120,11 @@ Open the Aspire dashboard, then open the **web** resource and pick a scenario fr
 
 ### Troubleshooting
 
-- **No Microsoft Foundry endpoint configured:** Set the `Parameters:foundry-endpoint` AppHost user-secret shown above.
-- **Authentication failures:** Run `az login` again and verify that the selected identity has the **Cognitive Services OpenAI User** role.
-- **Model deployment not found:** Set `Parameters:foundry-model` and `Parameters:foundry-reasoning-model` to the deployment names configured in your Foundry account.
+- **Foundry Local fails to start:** Verify `foundry --help` works and inspect the `foundry-local` resource logs in Aspire.
+- **Local model fails to load:** Check `foundry model list`, available memory, and disk space; choose a smaller tool-capable model with `Foundry:LocalModel`.
+- **Azure endpoint missing:** Set the `Parameters:foundry-endpoint` AppHost user-secret shown above.
+- **Azure authentication failures:** Run `az login` again and verify that the selected identity has the **Cognitive Services OpenAI User** role.
+- **Azure deployment not found:** Set `Parameters:foundry-model` and `Parameters:foundry-reasoning-model` to the deployment names configured in your Foundry account.
 
 ## Repository layout
 

@@ -13,4 +13,8 @@
     <ProjectReference Include="..\AgenticUI.AgentServer\AgenticUI.AgentServer.csproj" />
     <ProjectReference Include="..\AgenticUI.Web\AgenticUI.Web.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Foundry" Version="13.6.1-preview.1.26506.6" />
+  </ItemGroup>
 </Project>

@@ -42,6 +42,7 @@ app.MapAGUIServer("/selective_approval", agents.CreateSelectiveApproval());
 app.MapGet("/", () => Results.Ok(new
 {
     service = "AgenticUI AG-UI agent server",
+    provider = foundry.Provider,
     model = foundry.Model,
     reasoningModel = foundry.ReasoningModel,
     endpoints = new[]
