@@ -27,6 +27,12 @@ public sealed class FoundryOptions
 
     /// <summary>A reasoning-capable deployment used by the reasoning scenario, e.g. <c>gpt-5-mini</c>.</summary>
     public string ReasoningModel { get; set; } = DefaultReasoningModel;
+
+    /// <summary>
+    /// Normalize textual local tool calls using complete model responses. Disable for runtimes
+    /// that reliably return native structured tool calls while streaming.
+    /// </summary>
+    public bool LocalToolCallCompatibility { get; set; } = true;
 }
 
 /// <summary>Helpers for resolving Foundry configuration and building chat clients.</summary>
@@ -87,6 +93,15 @@ public static class Foundry
             }).GetChatClient(model ?? options.Model)
             : CreateClient(options).GetChatClient(model ?? options.Model);
 
+    /// <summary>Creates the provider-neutral client, including local tool-call normalization.</summary>
+    public static IChatClient CreateAgentChatClient(FoundryOptions options, string? model = null)
+    {
+        var client = CreateChatClient(options, model).AsIChatClient();
+        return options.Provider.Equals("Local", StringComparison.OrdinalIgnoreCase) && options.LocalToolCallCompatibility
+            ? new FoundryLocalToolCallChatClient(client)
+            : client;
+    }
+
     /// <summary>
     /// Creates the reasoning client using local chat completions or Azure's OpenAI <em>Responses</em> API.
     /// Azure reasoning summaries arrive through the Responses API as <see cref="TextReasoningContent"/>,
@@ -95,6 +110,6 @@ public static class Foundry
     /// </summary>
     public static IChatClient CreateReasoningChatClient(FoundryOptions options) =>
         options.Provider.Equals("Local", StringComparison.OrdinalIgnoreCase)
-            ? CreateChatClient(options, options.ReasoningModel).AsIChatClient()
+            ? CreateAgentChatClient(options, options.ReasoningModel)
             : CreateClient(options).GetResponsesClient().AsIChatClient(options.ReasoningModel);
 }

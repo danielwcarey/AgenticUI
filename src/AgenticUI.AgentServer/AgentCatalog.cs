@@ -6,7 +6,6 @@ using AgenticUI.AgentServer.Scenarios.SharedState;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using OpenAI.Chat;
 
 namespace AgenticUI.AgentServer;
 
@@ -14,9 +13,9 @@ namespace AgenticUI.AgentServer;
 /// Builds the <see cref="AIAgent"/> instances for each AG-UI demo scenario. Each agent is mapped to
 /// its own AG-UI endpoint in <c>Program.cs</c> via <c>MapAGUIServer</c>.
 /// </summary>
-public sealed class AgentCatalog(ChatClient chatClient, IChatClient reasoningChatClient)
+public sealed class AgentCatalog(IChatClient chatClient, IChatClient reasoningChatClient)
 {
-    private readonly ChatClient _chatClient = chatClient;
+    private readonly IChatClient _chatClient = chatClient;
     private readonly IChatClient _reasoningChatClient = reasoningChatClient;
 
     /// <summary>Basic streaming chat — text in, streamed text out.</summary>

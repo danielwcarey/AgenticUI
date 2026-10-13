@@ -8,10 +8,12 @@ if (provider.Equals("Local", StringComparison.OrdinalIgnoreCase))
 {
     var foundryLocal = builder.AddFoundry("foundry-local").RunAsFoundryLocal();
     var chat = foundryLocal.AddDeployment("chat",
-        builder.Configuration["Foundry:LocalModel"] ?? "phi-4-mini", "1", "Microsoft");
+        builder.Configuration["Foundry:LocalModel"] ?? "qwen3.5-2b", "1", "Microsoft");
 
     agentServer.WithReference(chat)
         .WithEnvironment("FOUNDRY_PROVIDER", "Local")
+        .WithEnvironment("Foundry__LocalToolCallCompatibility",
+            builder.Configuration["Foundry:LocalToolCallCompatibility"] ?? "true")
         .WaitFor(chat);
 }
 else if (provider.Equals("Azure", StringComparison.OrdinalIgnoreCase))

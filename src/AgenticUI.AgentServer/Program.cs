@@ -19,7 +19,7 @@ app.MapDefaultEndpoints();
 
 // Build the per-scenario agents backed by Microsoft Foundry.
 var foundry = Foundry.ReadOptions(app.Configuration);
-var chatClient = Foundry.CreateChatClient(foundry);
+var chatClient = Foundry.CreateAgentChatClient(foundry);
 var reasoningChatClient = Foundry.CreateReasoningChatClient(foundry);
 var agents = new AgentCatalog(chatClient, reasoningChatClient);
 

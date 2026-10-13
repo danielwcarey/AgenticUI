@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AgenticUI.AgentServer.Tests" />
     <ProjectReference Include="..\AgenticUI.ServiceDefaults\AgenticUI.ServiceDefaults.csproj" />
   </ItemGroup>
 

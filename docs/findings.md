@@ -31,6 +31,39 @@ The scenarios validate:
 
 ## Integration findings
 
+### Foundry Local Qwen tool calls require normalization
+
+With `qwen3.5-2b-generic-cpu:2`, the local OpenAI-compatible endpoint returned the weather call as
+`message.content` containing `<tool_call><function=get_weather><parameter=location>...` and
+`finish_reason=stop`, even with `stream=false`. No structured `tool_calls` were present, so MAF
+treated it as assistant text and AG-UI emitted no tool events.
+
+[`FoundryLocalToolCallChatClient`](../src/AgenticUI.AgentServer/FoundryLocalToolCallChatClient.cs)
+normalizes complete function/parameter XML, JSON-in-`<tool_call>`, and exact bare name/arguments
+JSON envelopes for available tools into `FunctionCallContent` before MAF's tool
+middleware. It checks function names and argument names against the supplied tool declarations,
+converts non-string arguments from JSON using their declared types, and rejects malformed calls.
+It leaves native function calls and ordinary text intact and never calls tools directly; framework
+invocation and approval handling remain responsible for execution.
+
+Local requests containing tools use non-streaming model completions, projected back into response
+updates for AG-UI. This also avoids local streaming responses that omit structured tool calls.
+The model's text arrives per completed turn for these requests. Requests without tools and Azure
+clients retain their streaming behavior. Set `Foundry:LocalToolCallCompatibility=false` to bypass
+the adapter and use native streaming with local models/runtimes that support it. The option is
+forwarded from AppHost configuration to AgentServer. No model name is hardcoded in the adapter;
+model switching continues through `Foundry:LocalModel`. Other textual tool-call formats and
+reasoning-prefixed calls are not normalized.
+
+Validation included the live backend-weather AG-UI endpoint, which emitted tool start, arguments,
+end and result events followed by a normal answer. The dependency-free regression runner also checks
+typed arguments, multiple call IDs, native calls, malformed input, and automatic tool invocation.
+Live callback execution also passed with `qwen3-vl-2b-instruct-generic-cpu:2`, which returned a bare
+JSON envelope, and with `qwen3.5-2b-generic-cpu:2`. The cached `Phi-4-mini-instruct-generic-cpu:5`
+variant returned a plain-text refusal to use the weather tool despite its catalog tool-support flag;
+tool adherence remains dependent on the model and runtime. Changing the configured model does not
+require changing the adapter.
+
 ### Automatic tools and interactive UI actions use separate paths
 
 `AGUIChatClient` 1.0.0 includes a `FunctionInvokingChatClient` and automatically invokes executable frontend tools supplied through `ChatOptions.Tools`. Their calls and results are ordinary tool content, so the Blazor AI components can map them to `FunctionInvocationContentBlock` instances or generated typed blocks.
